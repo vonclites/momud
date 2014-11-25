@@ -1,4 +1,4 @@
-package room
+package rooms
 
 import akka.actor._
 

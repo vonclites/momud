@@ -6,7 +6,7 @@ import scala.slick.jdbc.StaticQuery.interpolation
 import scala.collection.immutable.Map
 import scala.concurrent.duration._
 import scala.slick.jdbc.StaticQuery.staticQueryToInvoker
-import room._
+import rooms._
 
 object Gaia {
 	case class BuildWorld()
