@@ -1,5 +1,8 @@
+package world
+
 import scala.slick.driver.MySQLDriver.simple._
 import scala.slick.lifted.{ProvenShape, ForeignKeyQuery}
+import scala.slick.lifted.ProvenShape.proveShapeOf
 
 class Rooms(tag: Tag)
   extends Table[(Int, String, String)](tag, "rooms") {

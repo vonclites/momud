@@ -1,5 +1,7 @@
 
 
+package user
+
 import akka.actor.Actor
 import java.net.Socket
 import java.io.PrintWriter
@@ -9,7 +11,7 @@ import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 
-case class ClientConnection(port: Socket)
+case class ClientConnection(port: Socket) 
 
 class User extends Actor {
   private var userInput: BufferedReader = null

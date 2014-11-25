@@ -1,7 +1,15 @@
+package server
+
 import akka.actor.Actor
 import akka.actor.ActorSystem
+import akka.actor.ActorRef
 import akka.actor.Props
+import akka.actor.Inbox
 import java.net.ServerSocket
+import akka.actor.actorRef2Scala
+import scala.concurrent.duration._
+import user._
+import world._
 
 case class StartServer()
 
@@ -24,8 +32,17 @@ class MudServer extends Actor {
 }
 
 object MudServer extends App {
+	import Gaia.BuildWorld
   val system = ActorSystem("MorgantownMUD")
   val server = system.actorOf(Props(classOf[MudServer]), "server")
+  val gaia = system.actorOf(Props(classOf[Gaia]), "gaia")
   println("Server starting...")
   server ! StartServer
+  println("Building world...")
+  gaia ! BuildWorld
+  
+  val inbox = Inbox.create(system)
+  inbox.send(gaia, BuildWorld)
+  val world = inbox.receive(5.seconds)
+  println(world)
 }
