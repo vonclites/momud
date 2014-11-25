@@ -8,7 +8,7 @@ import akka.actor.Inbox
 import java.net.ServerSocket
 import akka.actor.actorRef2Scala
 import scala.concurrent.duration._
-import user._
+import users._
 import world._
 
 case class StartServer()
@@ -38,9 +38,7 @@ object MudServer extends App {
   val gaia = system.actorOf(Props(classOf[Gaia]), "gaia")
   println("Server starting...")
   server ! StartServer
-  println("Building world...")
-  gaia ! BuildWorld
-  
+  println("Building world...")  
   val inbox = Inbox.create(system)
   inbox.send(gaia, BuildWorld)
   val world = inbox.receive(5.seconds)
