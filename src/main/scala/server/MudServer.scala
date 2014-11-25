@@ -32,7 +32,7 @@ class MudServer extends Actor {
 }
 
 object MudServer extends App {
-	import Gaia.BuildWorld
+	import Gaia._
   val system = ActorSystem("MorgantownMUD")
   val server = system.actorOf(Props(classOf[MudServer]), "server")
   val gaia = system.actorOf(Props(classOf[Gaia]), "gaia")
