@@ -18,6 +18,35 @@ USE `mud`;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `exits`
+--
+
+DROP TABLE IF EXISTS `exits`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `exits` (
+  `from` int(11) NOT NULL,
+  `to` int(11) NOT NULL,
+  `dir` varchar(45) NOT NULL,
+  UNIQUE KEY `from_to_uq_idx` (`from`,`to`),
+  KEY `from_fk_idx` (`from`),
+  KEY `to_fk_idx` (`to`),
+  CONSTRAINT `from_fk` FOREIGN KEY (`from`) REFERENCES `rooms` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `to_fk` FOREIGN KEY (`to`) REFERENCES `rooms` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `exits`
+--
+
+LOCK TABLES `exits` WRITE;
+/*!40000 ALTER TABLE `exits` DISABLE KEYS */;
+INSERT INTO `exits` VALUES (1,2,'n'),(2,1,'s'),(2,3,'e'),(3,2,'w');
+/*!40000 ALTER TABLE `exits` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `rooms`
 --
 
@@ -51,4 +80,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2014-11-23 16:07:57
+-- Dump completed on 2014-11-24 21:36:50
