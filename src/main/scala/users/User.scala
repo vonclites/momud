@@ -31,13 +31,11 @@ import scala.concurrent.duration._
 
 case class ClientConnection(port: Socket)
 case class UserMessage(message: String)
-case class OnlineUsers(onlineUsers: Map[String, ActorRef])
 
 class User extends Actor with Commandable {
   private var userInput: BufferedReader = null
   private var userOutput: PrintWriter = null
   private var loggedIn = true
-  private var onlineUsers = Map[String, ActorRef]()
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
 
@@ -60,18 +58,16 @@ class User extends Actor with Commandable {
       userOutput.println(m.message)
       userOutput.flush
     }
-    case o: OnlineUsers => onlineUsers = o.onlineUsers
   }
 
   private def createConnection(input: BufferedReader, output: PrintWriter) {
-    implicit val timeout = Timeout(10 seconds)
     userInput = input
     userOutput = output
 
     userOutput.println("Wassup fresh, welcome to Morgantown. By what name can I refer to my new homie?")
     userOutput.flush
     
-    
+    implicit val timeout = Timeout(10 seconds)
     var usernameTaken = true
     var username = ""
     while (usernameTaken) {
