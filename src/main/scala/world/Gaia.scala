@@ -13,7 +13,6 @@ object Gaia {
 }
 
 class Gaia extends Actor{
-	import Room._
 	import Gaia._
 	val db = Database.forURL("jdbc:mysql://localhost:3306/mud", driver="com.mysql.jdbc.Driver", user="root", password="root")
   val rooms: TableQuery[Rooms] = TableQuery[Rooms]
@@ -21,7 +20,7 @@ class Gaia extends Actor{
   var world: Map[Int,(String,ActorRef)] = Map();
 	
 	def receive = {
-		case BuildWorld => buildWorld; sender ! world.toString
+		case BuildWorld => buildWorld
 	}
 	
 	def buildWorld = {
@@ -39,11 +38,8 @@ class Gaia extends Actor{
 				world foreach { case(id, room) =>
 	  			val exitQuery = sql"SELECT exits.dir, exits.to FROM exits JOIN rooms ON rooms.id = exits.from WHERE exits.from = $id".as[(String,Int)]
 					var exits: Map[String,(String,ActorRef)] = Map()
-					exitQuery foreach { case(dir, dest) =>
-	  				val mapping: (String,(String,ActorRef)) = (dir, world(dest))
-	  				exits = exits + mapping
-	  			}
-	  			room._2  ! SetExits(exits)
+					exitQuery foreach { case(dir, dest) => exits = exits + ((dir, world(dest))) }
+	  			room._2  ! Room.SetExits(exits)
 				}
 			}
 		}

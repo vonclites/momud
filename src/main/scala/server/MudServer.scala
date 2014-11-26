@@ -10,6 +10,7 @@ import akka.actor.actorRef2Scala
 import scala.concurrent.duration._
 import users._
 import world._
+import rooms._
 
 case class StartServer()
 
@@ -32,15 +33,18 @@ class MudServer extends Actor {
 }
 
 object MudServer extends App {
-	import Gaia._
   val system = ActorSystem("MorgantownMUD")
   val server = system.actorOf(Props(classOf[MudServer]), "server")
   val gaia = system.actorOf(Props(classOf[Gaia]), "gaia")
+  val player = system.actorOf(Props(classOf[User]))
+  val room = system.actorOf(Room.props(1, "test", "test"))
   println("Server starting...")
   server ! StartServer
   println("Building world...")  
   val inbox = Inbox.create(system)
-  inbox.send(gaia, BuildWorld)
-  val world = inbox.receive(5.seconds)
-  println(world)
+  inbox.send(gaia, Gaia.BuildWorld)
+  inbox.send(room, Room.Arrive("dusty",player))
+  inbox.send(room, Room.GetUsers)
+  val users = inbox.receive(5.seconds)
+  println(users)
 }
