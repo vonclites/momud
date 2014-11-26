@@ -5,7 +5,7 @@
 *.pyc
 *.tm.epoch
 *.vim
-*-shim.sbt
+activator-sbt-*-shim.sbt
 .idea/
 /project/plugins/project
 project/boot
@@ -15,3 +15,6 @@ target/
 .classpath
 .project
 .settings
+.DS_Store
+tmp
+.history

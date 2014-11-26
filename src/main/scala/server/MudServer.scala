@@ -13,10 +13,28 @@ import world._
 import rooms._
 
 case class StartServer()
+case class UserLogon(username: String, user: ActorRef)
+case class UserLogoff(username: String)
+case class IsOnline(username: String)
 
 class MudServer extends Actor {
+  private var onlineUsers: Map[String, ActorRef] = Map[String, ActorRef]()
+  
   def receive = {
-    case StartServer => startServer
+    case StartServer => {
+      context.actorOf(Props(new Actor {
+        def receive = {
+          case StartServer => {
+            startServer
+          }
+        }
+      }), "serverDaemon") ! StartServer
+    }
+    case UserLogon(username, user) => onlineUsers = onlineUsers + ((username, user))
+    case UserLogoff(username) => onlineUsers = onlineUsers - username
+    case IsOnline(username) => {
+      if (onlineUsers.contains(username)) sender ! true else sender ! false
+    }
   }
 
   private def startServer = {
