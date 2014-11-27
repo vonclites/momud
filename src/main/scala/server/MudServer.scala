@@ -30,10 +30,10 @@ class MudServer extends Actor {
         }
       }), "serverDaemon") ! StartServer
     }
-    case UserLogon(username, user) => onlineUsers = onlineUsers + ((username, user))
-    case UserLogoff(username) => onlineUsers = onlineUsers - username
+    case UserLogon(username, user) => onlineUsers = onlineUsers + ((username.toUpperCase(), user))
+    case UserLogoff(username) => onlineUsers = onlineUsers - username.toUpperCase()
     case IsOnline(username) => {
-      if (onlineUsers.contains(username)) sender ! true else sender ! false
+      if (onlineUsers.contains(username.toUpperCase())) sender ! true else sender ! false
     }
   }
 

@@ -35,6 +35,8 @@ case class UserMessage(message: String)
 class User extends Actor with Commandable {
   private var userInput: BufferedReader = null
   private var userOutput: PrintWriter = null
+  private var username = ""
+  private var origin: users.Origin.Origin = null
   private var loggedIn = true
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
@@ -64,27 +66,13 @@ class User extends Actor with Commandable {
     userInput = input
     userOutput = output
 
-    userOutput.println("Wassup fresh, welcome to Morgantown. By what name can I refer to my new homie?")
+    userOutput.println("\nWassup fresh, welcome to Morgantown. By what name can I refer to my new homie?")
     userOutput.flush
     
-    implicit val timeout = Timeout(10 seconds)
-    var usernameTaken = true
-    var username = ""
-    while (usernameTaken) {
-      username = userInput.readLine
-      val isOnline = MudServer.server ? IsOnline(username)
-      val result = Await.result(isOnline, timeout.duration).asInstanceOf[Boolean]
-      if (result) {
-        userOutput.println("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
-        userOutput.flush
-      } else {
-        MudServer.server ! UserLogon(username, self)
-        usernameTaken = false
-      }
-    }
-    println("User created for: " + username)
-    userOutput.println("Nice to meet you " + username + ". Grab yourself a beer, meet some new people, or bust some heads. " +
-      "Whatever gets you there.")
+    createCharacter
+    
+    userOutput.println("Well, it's been a pleasure, " + username + ". Grab yourself a beer, meet some new people, or bust some heads. " +
+      "Whatever gets you there.\n")
     userOutput.flush
 
     userCommandHandler ! GetCommandSet
@@ -101,6 +89,43 @@ class User extends Actor with Commandable {
             MudServer.server ! UserLogoff(username)
           }
         }
+      }
+    }
+  }
+  
+  private def createCharacter() = {
+    implicit val timeout = Timeout(10 seconds)
+    var usernameTaken = true
+    while (usernameTaken) {
+      username = userInput.readLine
+      val isOnline = MudServer.server ? IsOnline(username)
+      val result = Await.result(isOnline, timeout.duration).asInstanceOf[Boolean]
+      if (result) {
+        userOutput.println("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
+        userOutput.flush
+      } else {
+        MudServer.server ! UserLogon(username, self)
+        usernameTaken = false
+      }
+    }
+    println("User created for: " + username)
+    var noOriginDetermined = true
+    userOutput.println("Outta curiosity, " + username + " where are you from, the Mountain State, WV, or the Garden State, NJ?")
+    userOutput.flush
+    while (noOriginDetermined) {
+      var proposedOrigin = userInput.readLine
+      origin = Origin.determineOrigin(proposedOrigin)
+      if (origin == null) {
+        userOutput.println("Haha, I don't believe you. You're definitely from West Virginia or Jersey, which is it?")
+        userOutput.flush
+      } else if (origin == Origin.WV) {
+        userOutput.println("Ha! I knew it! Always nice to meet a fellow West Virginian.")
+        userOutput.flush
+        noOriginDetermined = false
+      } else {
+        userOutput.println("I figured as much. I could tell by the way you walked up like you owned the place.")
+        userOutput.flush
+        noOriginDetermined = false
       }
     }
   }
