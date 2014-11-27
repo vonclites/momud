@@ -1,21 +1,19 @@
 package server
 
-import akka.actor.Actor
-import akka.actor.ActorSystem
-import akka.actor.ActorRef
-import akka.actor.Props
-import akka.actor.Inbox
 import java.net.ServerSocket
-import akka.actor.actorRef2Scala
-import scala.concurrent.duration._
-import users._
-import world._
-import rooms._
+
+import akka.actor.Actor
+import akka.actor.ActorRef
+import akka.actor.ActorSystem
+import akka.actor.Inbox
+import akka.actor.Props
+import users.ClientConnection
+import users.User
+import world.Gaia
 
 case class StartServer()
 case class UserLogon(username: String, user: ActorRef)
 case class UserLogoff(username: String)
-case class IsOnline(username: String)
 
 class MudServer extends Actor {
   private var onlineUsers: Map[String, ActorRef] = Map[String, ActorRef]()
@@ -30,11 +28,8 @@ class MudServer extends Actor {
         }
       }), "serverDaemon") ! StartServer
     }
-    case UserLogon(username, user) => onlineUsers = onlineUsers + ((username.toUpperCase(), user))
-    case UserLogoff(username) => onlineUsers = onlineUsers - username.toUpperCase()
-    case IsOnline(username) => {
-      if (onlineUsers.contains(username.toUpperCase())) sender ! true else sender ! false
-    }
+    case UserLogon(username, user) => attemptLogon(username, user)
+    case UserLogoff(username) => attemptLogoff(username)
   }
 
   private def startServer = {
@@ -47,6 +42,19 @@ class MudServer extends Actor {
       println("Connection made, creating user...")
       user ! ClientConnection(clientConnection)
     }
+  }
+  
+  private def attemptLogon(username: String, user: ActorRef) = {
+    if (onlineUsers.contains(username.toUpperCase())) {
+      sender ! false
+    } else {
+      onlineUsers = onlineUsers + ((username.toUpperCase(), user))
+      sender ! true
+    }
+  }
+  
+  private def attemptLogoff(username: String) = {
+    onlineUsers = onlineUsers - username.toUpperCase()
   }
 }
 

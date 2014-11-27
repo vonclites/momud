@@ -6,8 +6,8 @@ case class UnparsedCommand(command: String)
 
 class CommandParser extends Actor {
   def receive = {
-    case c: UnparsedCommand => {
-      val words = c.command.split(" ")
+    case UnparsedCommand(command) => {
+      val words = command.split(" ")
       sender ! HandleCommand(words.toList, sender)
     }
   }

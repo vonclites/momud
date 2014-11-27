@@ -1,8 +1,9 @@
 package commands
 
-import akka.actor.ActorRef
-import akka.actor.Actor.Receive
 import scala.collection.mutable.HashMap
+
+import akka.actor.Actor.Receive
+import akka.actor.ActorRef
 import users.UserMessage
 
 case class NewCommandSet(commandSet: Set[String], commandHandler: ActorRef)
@@ -10,7 +11,7 @@ case class RemoveCommand(commandWord: String)
 case class HandleCommand(command: List[String], origin: ActorRef)
 case class GetAvailableCommands(origin: ActorRef)
 
-trait Commandable {
+trait CommandRecipient {
 
   private val validCommands: HashMap[Set[String], ActorRef] = new HashMap[Set[String], ActorRef]
 
