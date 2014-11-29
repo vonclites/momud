@@ -12,6 +12,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
 import akka.actor.Actor
+import akka.actor.ActorRef
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
@@ -23,15 +24,25 @@ import commands.UserCommandHandler
 import server.MudServer
 import server.UserLogoff
 import server.UserLogon
+import world.Gaia
+import rooms.Room
 
 case class ClientConnection(port: Socket)
+case class WorldIntroduction(world: ActorRef)
+case class Welcome(desc: String)
 case class UserMessage(message: String)
+
+case class Move(dir: String)
+case class Speak(msg: String)
+
 
 class User extends Actor with CommandRecipient {
   private var userInput: BufferedReader = null
   private var userOutput: PrintWriter = null
   private var username = ""
   private var origin: users.Origin.Origin = null
+  private var room: ActorRef = null
+  private var world: ActorRef = null
   private var loggedIn = true
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
@@ -52,6 +63,13 @@ class User extends Actor with CommandRecipient {
         }
       }), "clientConnectionDaemon") ! ClientConnection(port)
     }
+    case WorldIntroduction(gaia) => world = gaia
+    
+    case Move(dir) => room ! Room.Depart(username, dir)
+    case Speak(msg) => room ! Room.Say(username, msg)
+    case Room.Look => room ! Room.Look
+    	
+    case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
     case UserMessage(message) => {
       userOutput.println(message)
       userOutput.flush
@@ -70,6 +88,7 @@ class User extends Actor with CommandRecipient {
       "Whatever you're feeling.\n")
 
     userCommandHandler ! GetCommandSet
+    world ! Gaia.ReceiveUser(username)
     
     while (loggedIn) {
       val command = getUserInput

@@ -10,10 +10,12 @@ import rooms._
 
 object Gaia {
 	case class BuildWorld()
+	case class ReceiveUser(name:String)
 }
 
 class Gaia extends Actor{
-	import Gaia._
+	import Gaia.BuildWorld
+	import Gaia.ReceiveUser
 	val db = Database.forURL("jdbc:mysql://localhost:3306/mud", driver="com.mysql.jdbc.Driver", user="root", password="root")
   val rooms: TableQuery[Rooms] = TableQuery[Rooms]
   val exits: TableQuery[Exits] = TableQuery[Exits]
@@ -21,6 +23,7 @@ class Gaia extends Actor{
 	
 	def receive = {
 		case BuildWorld => buildWorld
+		case ReceiveUser(name) => world(1)._2  ! Room.Arrive(name, sender)
 	}
 	
 	def buildWorld = {
