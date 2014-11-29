@@ -44,6 +44,7 @@ class User extends Actor with CommandRecipient {
   private var room: ActorRef = null
   private var world: ActorRef = null
   private var loggedIn = true
+  private var hps = 100
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
 
