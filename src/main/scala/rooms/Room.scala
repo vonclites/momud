@@ -18,7 +18,11 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 	var users: Map[String,ActorRef] = Map()
 	def receive = {
 		case SetExits(exits) => this.exits = exits
-		case Arrive(name, ref) => users = users + ((name,ref))
+		case Arrive(name, ref) => {
+			users foreach { case (_, user) => user ! UserMessage(name + " has arrived.")}
+			users = users + ((name,ref))
+			//Send welcome to user
+		}
 		case Depart(name, dir) => {
 			if (exits.isDefinedAt(dir)){
 			users = users - name
