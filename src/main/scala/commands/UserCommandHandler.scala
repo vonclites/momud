@@ -2,9 +2,6 @@ package commands
 
 import akka.actor.Actor
 import akka.actor.ActorRef
-import akka.actor.Actor.Receive
-import scala.util.Failure
-import scala.util.Success
 import akka.actor.PoisonPill
 import users.UserMessage
 
@@ -21,10 +18,7 @@ class UserCommandHandler extends Actor {
     case c: Command if c.command(0).equalsIgnoreCase("south") => c.origin ! UserMessage("You travel south.")
     case c: Command if c.command(0).equalsIgnoreCase("east") => c.origin ! UserMessage("You travel east.")
     case c: Command if c.command(0).equalsIgnoreCase("west") => c.origin ! UserMessage("You travel west.")
-    case c: Command if c.command(0).equalsIgnoreCase("quit") => {
-      c.origin ! UserMessage("Logging out...")
-      c.origin ! PoisonPill
-    }
+    case c: Command if c.command(0).equalsIgnoreCase("quit") => c.origin ! PoisonPill
     case c: Command if c.command(0).equalsIgnoreCase("help") => c.origin ! GetAvailableCommands(c.origin)
     case GetCommandSet => assignCommandsToSender(sender)
   }

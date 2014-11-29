@@ -1,40 +1,37 @@
 package users
 
-import akka.actor.Actor
-import akka.actor.ActorRef
-import akka.actor.Actor.Receive
-import akka.pattern.ask
-import akka.util.Timeout
-import java.net.Socket
-import java.io.PrintWriter
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
-import akka.actor.Props
-import commands.CommandParser
-import commands.UserCommandHandler
-import scala.util.Try
-import scala.util.Failure
-import commands.Command
-import commands.Commandable
-import commands.UnparsedCommand
-import akka.actor.PoisonPill
-import commands.GetCommandSet
-import server.MudServer
-import server.UserLogon
-import server.UserLogoff
-import server.IsOnline
+import java.io.PrintWriter
+import java.net.Socket
+
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
+
+import akka.actor.Actor
+import akka.actor.Props
+import akka.pattern.ask
+import akka.util.Timeout
+import commands.CommandParser
+import commands.CommandRecipient
+import commands.GetCommandSet
+import commands.UnparsedCommand
+import commands.UserCommandHandler
+import server.MudServer
+import server.UserLogoff
+import server.UserLogon
 
 case class ClientConnection(port: Socket)
 case class UserMessage(message: String)
 
-class User extends Actor with Commandable {
+class User extends Actor with CommandRecipient {
   private var userInput: BufferedReader = null
   private var userOutput: PrintWriter = null
+  private var username = ""
+  private var origin: users.Origin.Origin = null
   private var loggedIn = true
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
@@ -45,17 +42,18 @@ class User extends Actor with Commandable {
   def receive = handleUserMessages.orElse(handleCommandMessages)
 
   def handleUserMessages: Receive = {
-    case c: ClientConnection => {
+    case ClientConnection(port) => {
       context.actorOf(Props(new Actor {
         def receive = {
-          case ClientConnection(port) => {
-            createConnection(c.port.getInputStream, c.port.getOutputStream)
+          case ClientConnection(portConnection) => {
+            createConnection(portConnection.getInputStream, portConnection.getOutputStream)
+            portConnection.close
           }
         }
-      }), "clientConnectionDaemon") ! c
+      }), "clientConnectionDaemon") ! ClientConnection(port)
     }
-    case m: UserMessage => {
-      userOutput.println(m.message)
+    case UserMessage(message) => {
+      userOutput.println(message)
       userOutput.flush
     }
   }
@@ -64,44 +62,68 @@ class User extends Actor with Commandable {
     userInput = input
     userOutput = output
 
-    userOutput.println("Wassup fresh, welcome to Morgantown. By what name can I refer to my new homie?")
-    userOutput.flush
+    self ! UserMessage("\nWassup fresh, welcome to Morgantown. By what name can I refer to my new homie?")
     
-    implicit val timeout = Timeout(10 seconds)
-    var usernameTaken = true
-    var username = ""
-    while (usernameTaken) {
-      username = userInput.readLine
-      val isOnline = MudServer.server ? IsOnline(username)
-      val result = Await.result(isOnline, timeout.duration).asInstanceOf[Boolean]
-      if (result) {
-        userOutput.println("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
-        userOutput.flush
-      } else {
-        MudServer.server ! UserLogon(username, self)
-        usernameTaken = false
-      }
-    }
-    println("User created for: " + username)
-    userOutput.println("Nice to meet you " + username + ". Grab yourself a beer, meet some new people, or bust some heads. " +
-      "Whatever gets you there.")
-    userOutput.flush
+    createPlayerCharacter
+    
+    self ! UserMessage("Well, it's been a pleasure, " + username + ". Grab yourself a beer, meet some new people, or bust some heads. " +
+      "Whatever you're feeling.\n")
 
     userCommandHandler ! GetCommandSet
     
     while (loggedIn) {
-      val command = userInput.readLine
+      val command = getUserInput
       command match {
         case a: Any => {
           commandParser ! UnparsedCommand(command)
           userOutput.println(username + " => " + command)
           userOutput.flush
           if (command.trim().take(4).equalsIgnoreCase("quit")) {
-            loggedIn = false
+            loggedIn = false       
+            userOutput.println("Logging out...")
+            userOutput.flush
             MudServer.server ! UserLogoff(username)
           }
         }
       }
     }
+  }
+  
+  private def createPlayerCharacter() = {
+    implicit val timeout = Timeout(10 seconds)
+    var usernameTaken = true
+    while (usernameTaken) {
+      username = getUserInput
+      val canLogon = MudServer.server ? UserLogon(username, self)
+      val loginSuccessful = Await.result(canLogon, timeout.duration).asInstanceOf[Boolean]
+      if (loginSuccessful) {
+        usernameTaken = false
+      } else {
+        self ! UserMessage("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
+      }
+    }
+    println("User created for: " + username)
+    var noOriginDetermined = true
+    self ! UserMessage("Nice to meet you. Outta curiosity, " + username + ", where are you from, the Mountain State, WV, or the Garden State, NJ?")
+    while (noOriginDetermined) {
+      var proposedOrigin = getUserInput
+      origin = Origin.determineOrigin(proposedOrigin)
+      if (origin == null) {
+        self ! UserMessage("Haha, I don't believe you. You're definitely from West Virginia or Jersey, which is it?")
+      } else if (origin == Origin.WV) {
+        self ! UserMessage("Ha! I knew it! Always nice to meet a fellow West Virginian.")
+        noOriginDetermined = false
+      } else {
+        self ! UserMessage("I figured as much. I could tell by the way you walked up like you owned the place.")
+        noOriginDetermined = false
+      }
+    }
+  }
+  
+  private def getUserInput: String = {
+    val buffer = userInput.readLine
+    userOutput.println
+    userOutput.flush
+    buffer
   }
 }
