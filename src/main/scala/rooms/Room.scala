@@ -27,8 +27,8 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 			if (exits.isDefinedAt(dir)){
 			users = users - name
 			exits(dir)._2 ! Arrive(name, sender)
-			users foreach { case (_, user) => user ! UserMessage(name + " has departed " + getFullDirection(dir))}
-			} else sender ! "Not an exit"
+			users foreach { case (_, user) => user ! UserMessage(name + " has departed " + getFullDirection(dir) + ".")}
+			} else sender ! UserMessage("You cannot go that direction.")
 		} 
 		case Say(name, msg) => (users - name) foreach { case (_, user) => user ! UserMessage(name + " says, '" + msg + "'")}
 		case GetUsers => sender ! users
