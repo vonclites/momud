@@ -56,3 +56,5 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 		(((users.keys.toList) map (name => (name + " is here."))).mkString("\n"))
 	}
 }
+
+class Player(val name: String, val origin: String, val ref: ActorRef)
