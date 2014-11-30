@@ -52,7 +52,7 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 		name + "\n" +
 		desc + "\n" +
 		//(exits.keys zip (exits.values map {case (name,ref) => name})) mkString("\n") +
-		((exits.toList) mkString("\n")) +
+		((exits.toList) mkString("\n")) + "\n" +
 		(((users.keys.toList) map (name => (name + " is here."))).mkString("\n"))
 	}
 }
