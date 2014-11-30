@@ -100,6 +100,7 @@ class User extends Actor with CommandRecipient {
             loggedIn = false       
             userOutput.println("Logging out...")
             userOutput.flush
+            room ! UserLogoff(username)
             MudServer.server ! UserLogoff(username)
           }
         }
