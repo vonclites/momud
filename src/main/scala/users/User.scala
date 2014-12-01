@@ -23,15 +23,18 @@ import server.MudServer
 import server.UserLogoff
 import server.UserLogon
 import world.Gaia
-import rooms.Room
+import rooms._
+import akka.actor.PoisonPill
 
 case class ClientConnection(port: Socket)
 case class WorldIntroduction(world: ActorRef)
 case class Welcome(desc: String)
 case class UserMessage(message: String)
-
+case class UserDeath(name: String)
 case class Move(dir: String)
 case class Speak(msg: String)
+case class Hit(target: String)
+case class GetHit(attacker: String, damage: Int)
 
 
 class User extends Actor with CommandRecipient {
@@ -43,6 +46,7 @@ class User extends Actor with CommandRecipient {
   private var world: ActorRef = null
   private var loggedIn = true
   private var hps = 100
+  private var lastCommand: String = ""
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
 
@@ -67,6 +71,18 @@ class User extends Actor with CommandRecipient {
     case Move(dir) => room ! Room.Depart(username, dir)
     case Speak(msg) => room ! Room.Say(username, msg)
     case Room.Look => room ! Room.Look
+    case Hit(target) => room ! Room.Hit(username, target)
+    case GetHit(attacker, damage) => {
+    	self ! UserMessage(attacker + " hits you for " + damage + " damage.")
+    	if (hps - damage < 1) {
+    		self ! UserMessage("You are dead.")
+    		room ! UserDeath(username)
+    		MudServer.server ! UserLogoff(username)
+    		loggedIn = false
+    	} else {
+    		hps = hps - damage
+    	}    	
+    }
     	
     case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
     case UserMessage(message) => {
@@ -87,13 +103,15 @@ class User extends Actor with CommandRecipient {
       "Whatever you're feeling.\n")
 
     userCommandHandler ! GetCommandSet
-    world ! Gaia.ReceiveUser(username)
+    world ! Gaia.ReceiveUser(username, new Player(username, origin, self))
     
     while (loggedIn) {
-      val command = getUserInput
+      var command = getUserInput
       command match {
         case a: Any => {
+        	command = if (command.trim == "!") lastCommand else command
           commandParser ! UnparsedCommand(command)
+          lastCommand = command
           userOutput.println(username + " => " + command)
           userOutput.flush
           if (command.trim().take(4).equalsIgnoreCase("quit")) {

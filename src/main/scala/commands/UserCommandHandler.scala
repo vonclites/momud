@@ -6,6 +6,7 @@ import akka.actor.PoisonPill
 import users.UserMessage
 import users.Move
 import users.Speak
+import users.Hit
 import rooms.Room.Look
 
 case class Command(command: List[String], origin: ActorRef)
@@ -22,6 +23,7 @@ class UserCommandHandler extends Actor {
     case c: Command if c.command(0).equalsIgnoreCase("east") => c.origin ! UserMessage("You travel east."); c.origin ! Move("e")
     case c: Command if c.command(0).equalsIgnoreCase("west") => c.origin ! UserMessage("You travel west."); c.origin ! Move("w")
     case c: Command if c.command(0).equalsIgnoreCase("look") => c.origin ! Look
+    case c: Command if c.command(0).equalsIgnoreCase("hit") => c.origin ! Hit(c.command(1))
     case c: Command if c.command(0).equalsIgnoreCase("quit") => c.origin ! PoisonPill
     case c: Command if c.command(0).equalsIgnoreCase("help") => c.origin ! GetAvailableCommands(c.origin)
     case GetCommandSet => assignCommandsToSender(sender)
@@ -34,6 +36,7 @@ class UserCommandHandler extends Actor {
     requestingUser ! NewCommandSet(Set("east"), self)
     requestingUser ! NewCommandSet(Set("west"), self)
     requestingUser ! NewCommandSet(Set("look"), self)
+    requestingUser ! NewCommandSet(Set("hit"), self)
     requestingUser ! NewCommandSet(Set("quit"), self)
     requestingUser ! NewCommandSet(Set("help"), self)
   }

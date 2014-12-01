@@ -1,16 +1,21 @@
 package rooms
 
 import akka.actor._
+import scala.util.Random
 import users.Welcome
 import users.UserMessage
+import users.GetHit
 import server.UserLogoff
+import users.Origin._
+import users.UserDeath
 
 object Room {
 	case class SetExits(exits: Map[String,(String,ActorRef)])
-	case class Arrive(name: String, ref: ActorRef)
+	case class Arrive(name: String, player: Player)
 	case class Depart(name: String, dir: String)
 	case class Say(name: String, msg: String)
 	case class Look()
+	case class Hit(attacker: String, target: String)
 	case class GetUsers()
 	def props(id: Int, name: String, desc: String) = Props(classOf[Room], id, name, desc)
 }
@@ -18,26 +23,38 @@ object Room {
 class Room(val id: Int, val name: String, val desc: String) extends Actor{
 	import Room._
 	var exits: Map[String,(String,ActorRef)] = Map()
-	var users: Map[String,ActorRef] = Map()
+	var users: Map[String,Player] = Map()
 	def receive = {
 		case SetExits(exits) => this.exits = exits
-		case Arrive(name, ref) => {
-			ref ! Welcome(this toString)
-			users foreach { case (_, user) => user ! UserMessage(name + " has arrived.")}
-			users = users + ((name,ref))
+		case Arrive(name, player) => {
+			player.ref ! Welcome(this toString)
+			users foreach { case (_, player) => player.ref ! UserMessage(name + " has arrived.")}
+			users = users + ((name,player))
 		}
 		case Depart(name, dir) => {
 			if (exits.isDefinedAt(dir)){
-			users = users - name
-			exits(dir)._2 ! Arrive(name, sender)
-			users foreach { case (_, user) => user ! UserMessage(name + " has departed " + getFullDirection(dir) + ".")}
+				val player = users(name)	
+				users = users - name
+				exits(dir)._2 ! Arrive(name, player)
+				users foreach { case (_, player) => player.ref ! UserMessage(name + " has departed " + getFullDirection(dir) + ".")}
 			} else sender ! UserMessage("You cannot go that direction.")
 		} 
-		case Say(name, msg) => (users - name) foreach { case (_, user) => user ! UserMessage(name + " says, '" + msg + "'")}
+		case Say(name, msg) => (users - name) foreach { case (_, player) => player.ref ! UserMessage(name + " says, '" + msg + "'")}
 		case Look => sender ! UserMessage(this toString)
+		case Hit(attackerName, targetName) => {
+			val attacker = users(attackerName)
+			users.find( { case (name,player) => name.toLowerCase.startsWith(targetName.toLowerCase) } ) match {
+				case Some((name,player)) => player.ref ! GetHit(attackerName, Random.nextInt(20)); sender ! UserMessage("You hit " + name + ".")
+				case None => sender ! UserMessage("That person does not seem to be here.")
+			}
+		}
+		case UserDeath(name) => {
+			users = users - name
+			users foreach { case(_, player) => player.ref ! UserMessage(name + " has been killed.")}
+		}
 		case UserLogoff(name) => {
 			users = users - name
-			users foreach { case (_, user) => user ! UserMessage(name + " has logged out.")}
+			users foreach { case (_, player) => player.ref ! UserMessage(name + " has logged out.")}
 		}
 		case GetUsers => sender ! users
 	}
@@ -51,10 +68,9 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 	override def toString = {
 		name + "\n" +
 		desc + "\n" +
-		//(exits.keys zip (exits.values map {case (name,ref) => name})) mkString("\n") +
-		((exits.toList) mkString("\n")) + "\n" +
+		((exits.toList) map { case (dir,(name,_)) =>  dir.toUpperCase + ": " + name}).mkString("\n") + "\n" +
 		(((users.keys.toList) map (name => (name + " is here."))).mkString("\n"))
 	}
 }
 
-class Player(val name: String, val origin: String, val ref: ActorRef)
+class Player(val name: String, val origin: Origin, val ref: ActorRef)
