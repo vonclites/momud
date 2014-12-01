@@ -68,7 +68,7 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 	override def toString = {
 		name + "\n" +
 		desc + "\n" +
-		((exits.toList) mkString("\n")) + "\n" +
+		((exits.toList) map { case (dir,(name,_)) =>  dir.toUpperCase + ": " + name}).mkString("\n") + "\n" +
 		(((users.keys.toList) map (name => (name + " is here."))).mkString("\n"))
 	}
 }
