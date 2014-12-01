@@ -9,6 +9,7 @@ import java.io.PrintWriter
 import java.net.Socket
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
+import scala.util.Random
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
@@ -23,7 +24,8 @@ import server.MudServer
 import server.UserLogoff
 import server.UserLogon
 import world.Gaia
-import rooms.Room
+import rooms._
+import akka.actor.PoisonPill
 
 case class ClientConnection(port: Socket)
 case class WorldIntroduction(world: ActorRef)
@@ -32,6 +34,8 @@ case class UserMessage(message: String)
 
 case class Move(dir: String)
 case class Speak(msg: String)
+case class Hit(target: String)
+case class GetHit(attacker: String)
 
 
 class User extends Actor with CommandRecipient {
@@ -67,6 +71,13 @@ class User extends Actor with CommandRecipient {
     case Move(dir) => room ! Room.Depart(username, dir)
     case Speak(msg) => room ! Room.Say(username, msg)
     case Room.Look => room ! Room.Look
+    case Hit(target) => room ! Room.Hit(username, target)
+    case GetHit(attacker) => {
+    	val damage: Int = Random.nextInt(20)
+    	self ! UserMessage(attacker + " hits you for " + damage + " damage.")
+    	hps = hps - damage
+    	//if (hps < 1) self ! UserMessage("You are dead."); self ! PoisonPill
+    }
     	
     case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
     case UserMessage(message) => {
@@ -87,7 +98,7 @@ class User extends Actor with CommandRecipient {
       "Whatever you're feeling.\n")
 
     userCommandHandler ! GetCommandSet
-    world ! Gaia.ReceiveUser(username)
+    world ! Gaia.ReceiveUser(username, new Player(username, origin, self))
     
     while (loggedIn) {
       val command = getUserInput

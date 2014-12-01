@@ -10,7 +10,7 @@ import rooms._
 
 object Gaia {
 	case class BuildWorld()
-	case class ReceiveUser(name:String)
+	case class ReceiveUser(name:String, player:Player)
 }
 
 class Gaia extends Actor{
@@ -23,7 +23,7 @@ class Gaia extends Actor{
 	
 	def receive = {
 		case BuildWorld => buildWorld
-		case ReceiveUser(name) => world(1)._2  ! Room.Arrive(name, sender)
+		case ReceiveUser(name, player) => world(1)._2  ! Room.Arrive(name, player)
 	}
 	
 	def buildWorld = {
