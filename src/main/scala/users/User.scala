@@ -47,6 +47,7 @@ class User extends Actor with CommandRecipient {
   private var world: ActorRef = null
   private var loggedIn = true
   private var hps = 100
+  private var lastCommand: String = ""
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
 
@@ -101,10 +102,12 @@ class User extends Actor with CommandRecipient {
     world ! Gaia.ReceiveUser(username, new Player(username, origin, self))
     
     while (loggedIn) {
-      val command = getUserInput
+      var command = getUserInput
       command match {
         case a: Any => {
+        	command = if (command.trim == "!") lastCommand else command
           commandParser ! UnparsedCommand(command)
+          lastCommand = command
           userOutput.println(username + " => " + command)
           userOutput.flush
           if (command.trim().take(4).equalsIgnoreCase("quit")) {
