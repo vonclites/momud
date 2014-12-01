@@ -1,11 +1,13 @@
 package rooms
 
 import akka.actor._
+import scala.util.Random
 import users.Welcome
 import users.UserMessage
 import users.GetHit
 import server.UserLogoff
 import users.Origin._
+import users.UserDeath
 
 object Room {
 	case class SetExits(exits: Map[String,(String,ActorRef)])
@@ -42,9 +44,13 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 		case Hit(attackerName, targetName) => {
 			val attacker = users(attackerName)
 			users.find( { case (name,player) => name.toLowerCase.startsWith(targetName.toLowerCase) } ) match {
-				case Some((name,player)) => player.ref ! GetHit(attackerName); sender ! UserMessage("You hit " + name + ".")
+				case Some((name,player)) => player.ref ! GetHit(attackerName, Random.nextInt(20)); sender ! UserMessage("You hit " + name + ".")
 				case None => sender ! UserMessage("That person does not seem to be here.")
 			}
+		}
+		case UserDeath(name) => {
+			users = users - name
+			users foreach { case(_, player) => player.ref ! UserMessage(name + " has been killed.")}
 		}
 		case UserLogoff(name) => {
 			users = users - name

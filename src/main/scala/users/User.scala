@@ -9,7 +9,6 @@ import java.io.PrintWriter
 import java.net.Socket
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.util.Random
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
@@ -31,11 +30,11 @@ case class ClientConnection(port: Socket)
 case class WorldIntroduction(world: ActorRef)
 case class Welcome(desc: String)
 case class UserMessage(message: String)
-
+case class UserDeath(name: String)
 case class Move(dir: String)
 case class Speak(msg: String)
 case class Hit(target: String)
-case class GetHit(attacker: String)
+case class GetHit(attacker: String, damage: Int)
 
 
 class User extends Actor with CommandRecipient {
@@ -73,11 +72,16 @@ class User extends Actor with CommandRecipient {
     case Speak(msg) => room ! Room.Say(username, msg)
     case Room.Look => room ! Room.Look
     case Hit(target) => room ! Room.Hit(username, target)
-    case GetHit(attacker) => {
-    	val damage: Int = Random.nextInt(20)
+    case GetHit(attacker, damage) => {
     	self ! UserMessage(attacker + " hits you for " + damage + " damage.")
-    	hps = hps - damage
-    	//if (hps < 1) self ! UserMessage("You are dead."); self ! PoisonPill
+    	if (hps - damage < 1) {
+    		self ! UserMessage("You are dead.")
+    		room ! UserDeath(username)
+    		MudServer.server ! UserLogoff(username)
+    		loggedIn = false
+    	} else {
+    		hps = hps - damage
+    	}    	
     }
     	
     case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
