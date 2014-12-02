@@ -35,11 +35,13 @@ case class Move(dir: String)
 case class Speak(msg: String)
 case class Hit(target: String)
 case class GetHit(attacker: String, damage: Int)
+case class Die()
 
 
 class User extends Actor with CommandRecipient {
   private var userInput: BufferedReader = null
   private var userOutput: PrintWriter = null
+  private var connection: Socket = null
   private var username = ""
   private var origin: users.Origin.Origin = null
   private var room: ActorRef = null
@@ -57,6 +59,7 @@ class User extends Actor with CommandRecipient {
 
   def handleUserMessages: Receive = {
     case ClientConnection(port) => {
+    	connection = port
       context.actorOf(Props(new Actor {
         def receive = {
           case ClientConnection(portConnection) => {
@@ -76,14 +79,17 @@ class User extends Actor with CommandRecipient {
     	self ! UserMessage(attacker + " hits you for " + damage + " damage.")
     	if (hps - damage < 1) {
     		self ! UserMessage("You are dead.")
-    		room ! UserDeath(username)
-    		MudServer.server ! UserLogoff(username)
-    		loggedIn = false
+    		self ! Die
     	} else {
     		hps = hps - damage
     	}    	
     }
-    	
+    case Die => {
+  		room ! UserDeath(username)
+  		MudServer.server ! UserLogoff(username)
+    	self ! PoisonPill
+    	connection.close
+    }
     case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
     case UserMessage(message) => {
       userOutput.println(message)
