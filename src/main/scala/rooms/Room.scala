@@ -28,7 +28,10 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 		case SetExits(exits) => this.exits = exits
 		case Arrive(name, player) => {
 			player.ref ! Welcome(this toString)
-			users foreach { case (_, player) => player.ref ! UserMessage(name + " has arrived.")}
+			player.origin match{
+				case WV => users foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " arrives with a steady gait.")}
+				case NJ => users foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " arrives, trying to look like a badass.")} 
+			}
 			users = users + ((name,player))
 		}
 		case Depart(name, dir) => {
@@ -68,8 +71,13 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 	override def toString = {
 		name + "\n" +
 		desc + "\n" +
-		((exits.toList) map { case (dir,(name,_)) =>  dir.toUpperCase + ": " + name}).mkString("\n") + "\n" +
-		(((users.keys.toList) map (name => (name + " is here."))).mkString("\n"))
+		((exits.toList) map { case (dir,(name,_)) => getFullDirection(dir) + ": " + name}).mkString("\n") + "\n" +
+		(((users.toList) map { case (name, player) => {
+			player.origin  match {
+				case WV => name + " is here, wearing a WVU shirt."
+				case NJ => name + " is here, his baseball rotated sideways."
+			}
+		}}).mkString("\n"))
 	}
 }
 
