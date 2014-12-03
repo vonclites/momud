@@ -75,7 +75,7 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 		(((users.toList) map { case (name, player) => {
 			player.origin  match {
 				case WV => name + " is here, wearing a WVU shirt."
-				case NJ => name + " is here, his baseball rotated sideways."
+				case NJ => name + " is here, his baseball cap rotated sideways."
 			}
 		}}).mkString("\n"))
 	}
