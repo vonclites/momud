@@ -2,7 +2,7 @@ package commands
 
 import akka.actor.Actor
 import akka.actor.ActorRef
-import users.UserMessage
+import users._
 
 trait RoomCommandHandler {
 	def commands: Set[String]
@@ -16,7 +16,7 @@ class BarCommandHandler extends Actor with RoomCommandHandler{
   def receive = handleBarCommands
 
   def handleBarCommands: Receive = {
-    case c: Command if c.command(0).equalsIgnoreCase("drink") => c.origin ! UserMessage("DRANK!")
+    case c: Command if c.command(0).equalsIgnoreCase("drink") => c.origin ! BuyDrink
     case GiveCommandSet(user) => assignCommandsToSender(user)
     case RemoveCommandSet(user) => commands foreach (user ! RemoveCommand(_))
   }

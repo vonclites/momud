@@ -38,6 +38,7 @@ case class Hit(target: String)
 case class GetHit(attacker: String, damage: Int)
 case class Die()
 case class GetRoomCommands(handler: ActorRef)
+case class BuyDrink()
 
 
 class User extends Actor with CommandRecipient {
@@ -77,7 +78,11 @@ class User extends Actor with CommandRecipient {
     case Move(dir) => room ! Room.Depart(username, dir, bac)
     case Speak(msg) => room ! Room.Say(username, msg)
     case Room.Look => room ! Room.Look
-    case Hit(target) => room ! Room.Hit(username, target)
+    case Hit(target) => room ! Room.Hit(username, target, bac)
+    case BuyDrink => {
+    	self ! UserMessage("You are handed a vodka and redbull, immediately slam it, and instantly absorb all the alcohol into your blood.")
+    	bac = bac + 0.3
+    }
     case GetHit(attacker, damage) => {
     	self ! UserMessage(attacker + " hits you for " + damage + " damage.")
     	if (hps - damage < 1) {

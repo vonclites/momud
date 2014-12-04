@@ -14,7 +14,7 @@ object Room {
 	case class Depart(name: String, dir: String, bac: Double)
 	case class Say(name: String, msg: String)
 	case class Look()
-	case class Hit(attacker: String, target: String)
+	case class Hit(attacker: String, target: String, bac: Double)
 	case class GetUsers()
 	def props(id: Int, name: String, desc: String, bar: Int) = Props(classOf[Room], id, name, desc, bar)
 }
@@ -54,10 +54,18 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 		} 
 		case Say(name, msg) => (users - name) foreach { case (_, player) => player.ref ! UserMessage(name + " says, '" + msg + "'")}
 		case Look => sender ! UserMessage(this toString)
-		case Hit(attackerName, targetName) => {
+		case Hit(attackerName, targetName, bac) => {
 			val attacker = users(attackerName)
 			users.find( { case (name,player) => name.toLowerCase.startsWith(targetName.toLowerCase) } ) match {
-				case Some((name,player)) => player.ref ! GetHit(attackerName, Random.nextInt(20)); sender ! UserMessage("You hit " + name + ".")
+				case Some((name,player)) => {
+					if (successfulHit(bac)){
+						player.ref ! GetHit(attackerName, (Random.nextInt(20).toDouble * bac).toInt)
+						sender ! UserMessage("You hit " + name + ".")
+					} else {
+						sender ! UserMessage("You whiff.")
+						player.ref ! UserMessage(attackerName + " tries to hit you but misses.")
+					}
+				}
 				case None => sender ! UserMessage("That person does not seem to be here.")
 			}
 		}
@@ -71,6 +79,8 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 		}
 		case GetUsers => sender ! users
 	}
+	
+	def successfulHit(bac: Double): Boolean = (Random.nextInt(100) / bac) > 20
 	
 	def getFullDirection(dir: String): String = dir match {
 		case "n" => "north"
