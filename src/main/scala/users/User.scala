@@ -37,6 +37,7 @@ case class Speak(msg: String)
 case class Hit(target: String)
 case class GetHit(attacker: String, damage: Int)
 case class Die()
+case class GetRoomCommands(handler: ActorRef)
 
 
 class User extends Actor with CommandRecipient {
@@ -93,6 +94,7 @@ class User extends Actor with CommandRecipient {
     	connection.close
     }
     case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
+    case GetRoomCommands(handler) => handler ! GetCommandSet
     case UserMessage(message) => {
       userOutput.println(message)
       userOutput.flush
@@ -164,9 +166,10 @@ class User extends Actor with CommandRecipient {
   }
   
   private def getUserInput: String = {
-  	
+  	userOutput.print(username + " => ")
+    userOutput.flush
     val buffer = userInput.readLine
-    userOutput.print(username + " => ")
+    userOutput.println
     userOutput.flush
     buffer
   }

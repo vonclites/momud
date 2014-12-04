@@ -7,6 +7,7 @@ import scala.collection.immutable.Map
 import scala.concurrent.duration._
 import scala.slick.jdbc.StaticQuery.staticQueryToInvoker
 import rooms._
+import commands._
 
 object Gaia {
 	case class BuildWorld()
@@ -31,8 +32,10 @@ class Gaia extends Actor{
 			createRooms
 			setExits
 			def createRooms = {
-				rooms foreach { case (id, name, desc) =>
-		  		val room: ActorRef = context.actorOf(Room.props(id, name, desc))
+				val barHandler = context.actorOf(Props(classOf[BarCommandHandler]))
+				val regularRoomHandler = context.actorOf(Props(classOf[RegularRoomCommandHandler]))
+				rooms foreach { case (id, name, desc, bar) =>
+		  		val room: ActorRef = context.actorOf(Room.props(id, name, desc, bar))
 		  		val mapping: (Int,(String,ActorRef)) = (id,(name,room))
 		  		world = world + mapping
 				}

@@ -2,13 +2,11 @@ package rooms
 
 import akka.actor._
 import scala.util.Random
-import users.Welcome
-import users.UserMessage
-import users.GetHit
-import server.UserLogoff
+import users._
 import users.Origin._
-import users.UserDeath
-import users.Welcome
+import server.UserLogoff
+import commands.RoomCommandHandler
+import commands._
 
 object Room {
 	case class SetExits(exits: Map[String,(String,ActorRef)])
@@ -18,17 +16,19 @@ object Room {
 	case class Look()
 	case class Hit(attacker: String, target: String)
 	case class GetUsers()
-	def props(id: Int, name: String, desc: String) = Props(classOf[Room], id, name, desc)
+	def props(id: Int, name: String, desc: String, bar: Int) = Props(classOf[Room], id, name, desc, bar)
 }
 
-class Room(val id: Int, val name: String, val desc: String) extends Actor{
+class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Actor{
 	import Room._
+	var commandHandler: ActorRef = if (bar == 0) context.actorOf(Props(classOf[RegularRoomCommandHandler])) else context.actorOf(Props(new BarCommandHandler))
 	var exits: Map[String,(String,ActorRef)] = Map()
 	var users: Map[String,Player] = Map()
 	def receive = {
 		case SetExits(exits) => this.exits = exits
 		case Arrive(name, player) => {
 			player.ref ! Welcome(this toString)
+			commandHandler ! GiveCommandSet(player.ref)
 			player.origin match{
 				case WV => users foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " arrives with a steady gait.")}
 				case NJ => users foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " arrives, trying to look like a badass.")} 
@@ -45,6 +45,7 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 		  		}
 		  		case _ => {
 		  			users = users - name
+		  			commandHandler ! RemoveCommandSet(player.ref)
 						exits(dir)._2 ! Arrive(name, player)
 						users foreach { case (_, player) => player.ref ! UserMessage(name + " has departed " + getFullDirection(dir) + ".")}
 		  		}
