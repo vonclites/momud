@@ -18,10 +18,10 @@ class UserCommandHandler extends Actor {
 
   def handleUserCommands: Receive = {
     case c: Command if c.command(0).equalsIgnoreCase("say") => c.origin ! UserMessage("You said: " + c.command.tail.mkString(" ")); c.origin ! Speak(c.command.tail.mkString(" "))
-    case c: Command if c.command(0).equalsIgnoreCase("north") || c.command(0).equalsIgnoreCase("n") => c.origin ! UserMessage("You travel north."); c.origin ! Move("n")
-    case c: Command if c.command(0).equalsIgnoreCase("south") || c.command(0).equalsIgnoreCase("s")  => c.origin ! UserMessage("You travel south."); c.origin ! Move("s")
-    case c: Command if c.command(0).equalsIgnoreCase("east") || c.command(0).equalsIgnoreCase("e")  => c.origin ! UserMessage("You travel east."); c.origin ! Move("e")
-    case c: Command if c.command(0).equalsIgnoreCase("west") || c.command(0).equalsIgnoreCase("w")  => c.origin ! UserMessage("You travel west."); c.origin ! Move("w")
+    case c: Command if c.command(0).equalsIgnoreCase("north") || c.command(0).equalsIgnoreCase("n") => c.origin ! Move("n")
+    case c: Command if c.command(0).equalsIgnoreCase("south") || c.command(0).equalsIgnoreCase("s")  => c.origin ! Move("s")
+    case c: Command if c.command(0).equalsIgnoreCase("east") || c.command(0).equalsIgnoreCase("e")  => c.origin ! Move("e")
+    case c: Command if c.command(0).equalsIgnoreCase("west") || c.command(0).equalsIgnoreCase("w")  => c.origin ! Move("w")
     case c: Command if c.command(0).equalsIgnoreCase("look") => c.origin ! Look
     case c: Command if c.command(0).equalsIgnoreCase("hit") => c.origin ! Hit(c.command(1))
     case c: Command if c.command(0).equalsIgnoreCase("quit") => c.origin ! PoisonPill

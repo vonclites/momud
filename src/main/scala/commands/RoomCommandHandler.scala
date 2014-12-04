@@ -18,7 +18,7 @@ class BarCommandHandler(val room: ActorRef) extends Actor with RoomCommandHandle
   def receive = handleBarCommands
 
   def handleBarCommands: Receive = {
-    case c: Command if c.command(0).equalsIgnoreCase("drink") => room ! GiveDrink(c.origin); Thread.sleep(5000)
+    case c: Command if c.command(0).equalsIgnoreCase("drink") => Thread.sleep(5000); room ! GiveDrink(c.origin)
     case GiveCommandSet(user) => assignCommandsToSender(user)
     case RemoveCommandSet(user) => commands foreach (user ! RemoveCommand(_))
   }

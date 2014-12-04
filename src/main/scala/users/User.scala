@@ -33,8 +33,10 @@ case class Welcome(desc: String)
 case class UserMessage(message: String)
 case class UserDeath(name: String)
 case class Move(dir: String)
+case class PerformMove(dir: String)
 case class Speak(msg: String)
 case class Hit(target: String)
+case class PerformHit(target: String)
 case class GetHit(attacker: String, damage: Int)
 case class Die()
 case class GetRoomCommands(handler: ActorRef)
@@ -55,6 +57,7 @@ class User extends Actor with CommandRecipient {
   private var lastCommand: String = ""
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
+  private val actionBuffer = context.actorOf(Props(new ActionBuffer), "actionBuffer")
 
   implicit def inputStreamWrapper(input: InputStream) = new BufferedReader(new InputStreamReader(input))
   implicit def outputStreamWrapper(output: OutputStream) = new PrintWriter(new OutputStreamWriter(output))
@@ -74,11 +77,12 @@ class User extends Actor with CommandRecipient {
       }), "clientConnectionDaemon") ! ClientConnection(port)
     }
     case WorldIntroduction(gaia) => world = gaia
-    
-    case Move(dir) => room ! Room.Depart(username, dir, bac)
+    case Move(dir) => actionBuffer ! PrepMove(dir)
+    case PerformMove(dir) => room ! Room.Depart(username, dir, bac)
     case Speak(msg) => room ! Room.Say(username, msg)
     case Room.Look => room ! Room.Look(username)
-    case Hit(target) => room ! Room.Hit(username, target, bac)
+    case Hit(target) => actionBuffer ! PrepHit(target)
+    case PerformHit(target) => room ! Room.Hit(username, target, bac)
     case BuyDrink => {
     	self ! UserMessage("You are handed a vodka and redbull, immediately slam it, and instantly absorb all the alcohol into your blood.")
     	bac = bac + 0.3
