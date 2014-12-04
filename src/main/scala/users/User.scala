@@ -77,7 +77,7 @@ class User extends Actor with CommandRecipient {
     
     case Move(dir) => room ! Room.Depart(username, dir, bac)
     case Speak(msg) => room ! Room.Say(username, msg)
-    case Room.Look => room ! Room.Look
+    case Room.Look => room ! Room.Look(username)
     case Hit(target) => room ! Room.Hit(username, target, bac)
     case BuyDrink => {
     	self ! UserMessage("You are handed a vodka and redbull, immediately slam it, and instantly absorb all the alcohol into your blood.")
@@ -151,7 +151,10 @@ class User extends Actor with CommandRecipient {
       if (loginSuccessful) {
         usernameTaken = false
       } else {
-        self ! UserMessage("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
+      		if (username.contains(" ")) self ! UserMessage("Just your first name, dude.")
+      		else if (username == "") self ! UserMessage("What? Speak up man!")
+      		else if (!username.forall(_.isLetter)) self ! UserMessage("What kind of name is that?  You think this is some online game? Do you even alphabet, bro?")
+      		else self ! UserMessage("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
       }
     }
     println("User created for: " + username)

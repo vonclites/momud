@@ -13,7 +13,7 @@ object Room {
 	case class Arrive(name: String, player: Player)
 	case class Depart(name: String, dir: String, bac: Double)
 	case class Say(name: String, msg: String)
-	case class Look()
+	case class Look(name: String)
 	case class Hit(attacker: String, target: String, bac: Double)
 	case class GetUsers()
 	def props(id: Int, name: String, desc: String, bar: Int) = Props(classOf[Room], id, name, desc, bar)
@@ -27,7 +27,7 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 	def receive = {
 		case SetExits(exits) => this.exits = exits
 		case Arrive(name, player) => {
-			player.ref ! Welcome(this toString)
+			player.ref ! Welcome(this roomDescription(name))
 			commandHandler ! GiveCommandSet(player.ref)
 			player.origin match{
 				case WV => users foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " arrives with a steady gait.")}
@@ -53,7 +53,7 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 			} else sender ! UserMessage("You cannot go that direction.")
 		} 
 		case Say(name, msg) => (users - name) foreach { case (_, player) => player.ref ! UserMessage(name + " says, '" + msg + "'")}
-		case Look => sender ! UserMessage(this toString)
+		case Look(name) => sender ! UserMessage(this roomDescription(name))
 		case Hit(attackerName, targetName, bac) => {
 			val attacker = users(attackerName)
 			users.find( { case (name,player) => name.toLowerCase.startsWith(targetName.toLowerCase) } ) match {
@@ -88,11 +88,11 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 		case "e" => "east"
 		case "w" => "west"
 	}
-	override def toString = {
+	def roomDescription(username: String) = {
 		name + "\n" +
 		desc + "\n" +
 		((exits.toList) map { case (dir,(name,_)) => getFullDirection(dir) + ": " + name}).mkString("\n") + "\n" +
-		(((users.toList) map { case (name, player) => {
+		((((users - username).toList) map { case (name, player) => {
 			player.origin  match {
 				case WV => name + " is here, wearing a WVU shirt."
 				case NJ => name + " is here, his baseball cap rotated sideways."
