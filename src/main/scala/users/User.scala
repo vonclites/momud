@@ -101,8 +101,9 @@ class User extends Actor with CommandRecipient {
     case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
     case GetRoomCommands(handler) => handler ! GetCommandSet
     case UserMessage(message) => {
-      userOutput.println(message)
+      userOutput.println("\n" + message + "\n")
       userOutput.flush
+      printUserPrompt
     }
   }
 
@@ -110,12 +111,13 @@ class User extends Actor with CommandRecipient {
     userInput = input
     userOutput = output
 
-    self ! UserMessage("\nWassup fresh, welcome to Morgantown. By what name can I refer to my new homie?")
+    self ! UserMessage("Wassup fresh, welcome to Morgantown. By what name can I refer to my new homie?")
     
     createPlayerCharacter
     
-    self ! UserMessage("Well, it's been a pleasure, " + username + ". Grab yourself a beer, meet some new people, or bust some heads. " +
-      "Whatever you're feeling.\n")
+    userOutput.println("Well, it's been a pleasure, " + username + ". Grab yourself a beer, meet some new people, or bust some heads. " +
+      "Whatever you're feeling.")
+    userOutput.flush
 
     userCommandHandler ! GetCommandSet
     world ! Gaia.ReceiveUser(username, new Player(username, origin, self))
@@ -161,21 +163,26 @@ class User extends Actor with CommandRecipient {
       if (origin == null) {
         self ! UserMessage("Haha, I don't believe you. You're definitely from West Virginia or Jersey, which is it?")
       } else if (origin == Origin.WV) {
-        self ! UserMessage("Ha! I knew it! Always nice to meet a fellow West Virginian.")
+        userOutput.println("\nHa! I knew it! Always nice to meet a fellow West Virginian.")
+        userOutput.flush
         noOriginDetermined = false
       } else {
-        self ! UserMessage("I figured as much. I could tell by the way you walked up like you owned the place.")
+        userOutput.println("\nI figured as much. I could tell by the way you walked up like you owned the place.")
+        userOutput.flush
         noOriginDetermined = false
       }
     }
   }
   
   private def getUserInput: String = {
-  	userOutput.print(username + " => ")
-    userOutput.flush
     val buffer = userInput.readLine
     userOutput.println
     userOutput.flush
     buffer
+  }
+  
+  private def printUserPrompt: Unit = {
+    userOutput.print("HP: " + hps + "/100 IL: " + bac + " => ")
+    userOutput.flush
   }
 }
