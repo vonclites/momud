@@ -192,7 +192,7 @@ class User extends Actor with CommandRecipient {
   }
   
   private def printUserPrompt: Unit = {
-    userOutput.print("HP: " + hps + "/100 IL: " + bac + " => ")
+    userOutput.print("HP: " + hps + "/100 IL: " + "%.1f".format(bac) + " => ")
     userOutput.flush
   }
 }
