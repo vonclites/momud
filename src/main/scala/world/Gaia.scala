@@ -24,7 +24,7 @@ class Gaia extends Actor{
 	
 	def receive = {
 		case BuildWorld => buildWorld
-		case ReceiveUser(name, player) => world(1)._2  ! Room.Arrive(name, player)
+		case ReceiveUser(name, player) => world(2)._2  ! Room.Arrive(name, player)
 	}
 	
 	def buildWorld = {
@@ -32,8 +32,6 @@ class Gaia extends Actor{
 			createRooms
 			setExits
 			def createRooms = {
-				val barHandler = context.actorOf(Props(classOf[BarCommandHandler]))
-				val regularRoomHandler = context.actorOf(Props(classOf[RegularRoomCommandHandler]))
 				rooms foreach { case (id, name, desc, bar) =>
 		  		val room: ActorRef = context.actorOf(Room.props(id, name, desc, bar))
 		  		val mapping: (Int,(String,ActorRef)) = (id,(name,room))

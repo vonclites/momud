@@ -13,21 +13,21 @@ object Room {
 	case class Arrive(name: String, player: Player)
 	case class Depart(name: String, dir: String, bac: Double)
 	case class Say(name: String, msg: String)
-	case class Look()
-	case class Hit(attacker: String, target: String)
+	case class Look(name: String)
+	case class Hit(attacker: String, target: String, bac: Double)
 	case class GetUsers()
 	def props(id: Int, name: String, desc: String, bar: Int) = Props(classOf[Room], id, name, desc, bar)
 }
 
 class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Actor{
 	import Room._
-	var commandHandler: ActorRef = if (bar == 0) context.actorOf(Props(classOf[RegularRoomCommandHandler])) else context.actorOf(Props(new BarCommandHandler))
+	var commandHandler: ActorRef = if (bar == 0) context.actorOf(Props(classOf[RegularRoomCommandHandler])) else context.actorOf(Props(new BarCommandHandler(self)))
 	var exits: Map[String,(String,ActorRef)] = Map()
 	var users: Map[String,Player] = Map()
 	def receive = {
 		case SetExits(exits) => this.exits = exits
 		case Arrive(name, player) => {
-			player.ref ! Welcome(this toString)
+			player.ref ! Welcome(this roomDescription(name))
 			commandHandler ! GiveCommandSet(player.ref)
 			player.origin match{
 				case WV => users foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " arrives with a steady gait.")}
@@ -53,13 +53,25 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 			} else sender ! UserMessage("You cannot go that direction.")
 		} 
 		case Say(name, msg) => (users - name) foreach { case (_, player) => player.ref ! UserMessage(name + " says, '" + msg + "'")}
-		case Look => sender ! UserMessage(this toString)
-		case Hit(attackerName, targetName) => {
+		case Look(name) => sender ! UserMessage(this roomDescription(name))
+		case Hit(attackerName, targetName, bac) => {
 			val attacker = users(attackerName)
 			users.find( { case (name,player) => name.toLowerCase.startsWith(targetName.toLowerCase) } ) match {
-				case Some((name,player)) => player.ref ! GetHit(attackerName, Random.nextInt(20)); sender ! UserMessage("You hit " + name + ".")
+				case Some((name,player)) => {
+					if (successfulHit(bac)){
+						player.ref ! GetHit(attackerName, (Random.nextInt(20).toDouble * bac).toInt)
+						sender ! UserMessage("You hit " + name + ".")
+					} else {
+						sender ! UserMessage("You whiff.")
+						player.ref ! UserMessage(attackerName + " tries to hit you but misses.")
+					}
+				}
 				case None => sender ! UserMessage("That person does not seem to be here.")
 			}
+		}
+		case GiveDrink(playerRef) => users.find( { case (name,player) => player.ref == playerRef } ) match{
+			case Some((name,player)) => player.ref ! BuyDrink
+			case None => ;
 		}
 		case UserDeath(name) => {
 			users = users - name
@@ -72,17 +84,19 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 		case GetUsers => sender ! users
 	}
 	
+	def successfulHit(bac: Double): Boolean = (Random.nextInt(100) / bac) > 20
+	
 	def getFullDirection(dir: String): String = dir match {
 		case "n" => "north"
 		case "s" => "south"
 		case "e" => "east"
 		case "w" => "west"
 	}
-	override def toString = {
+	def roomDescription(username: String) = {
 		name + "\n" +
 		desc + "\n" +
 		((exits.toList) map { case (dir,(name,_)) => getFullDirection(dir) + ": " + name}).mkString("\n") + "\n" +
-		(((users.toList) map { case (name, player) => {
+		((((users - username).toList) map { case (name, player) => {
 			player.origin  match {
 				case WV => name + " is here, wearing a WVU shirt."
 				case NJ => name + " is here, his baseball cap rotated sideways."

@@ -2,7 +2,8 @@ package commands
 
 import akka.actor.Actor
 import akka.actor.ActorRef
-import users.UserMessage
+import users._
+import scala.concurrent.duration
 
 trait RoomCommandHandler {
 	def commands: Set[String]
@@ -10,13 +11,14 @@ trait RoomCommandHandler {
 
 case class GiveCommandSet(user: ActorRef)
 case class RemoveCommandSet(user: ActorRef)
+case class GiveDrink(user: ActorRef)
 
-class BarCommandHandler extends Actor with RoomCommandHandler{
+class BarCommandHandler(val room: ActorRef) extends Actor with RoomCommandHandler{
 	def commands = Set("drink")
   def receive = handleBarCommands
 
   def handleBarCommands: Receive = {
-    case c: Command if c.command(0).equalsIgnoreCase("drink") => c.origin ! UserMessage("DRANK!")
+    case c: Command if c.command(0).equalsIgnoreCase("drink") => Thread.sleep(5000); room ! GiveDrink(c.origin)
     case GiveCommandSet(user) => assignCommandsToSender(user)
     case RemoveCommandSet(user) => commands foreach (user ! RemoveCommand(_))
   }

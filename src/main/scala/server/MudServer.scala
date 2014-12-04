@@ -49,7 +49,7 @@ class MudServer extends Actor {
   }
   
   private def attemptLogon(username: String, user: ActorRef) = {
-    if (onlineUsers.contains(username.toUpperCase())) {
+    if (onlineUsers.contains(username.toUpperCase()) || username == "" || username.contains(" ") || !username.forall(_.isLetter)) {
       sender ! false
     } else {
       onlineUsers = onlineUsers + ((username.toUpperCase(), user))

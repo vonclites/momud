@@ -33,11 +33,14 @@ case class Welcome(desc: String)
 case class UserMessage(message: String)
 case class UserDeath(name: String)
 case class Move(dir: String)
+case class PerformMove(dir: String)
 case class Speak(msg: String)
 case class Hit(target: String)
+case class PerformHit(target: String)
 case class GetHit(attacker: String, damage: Int)
 case class Die()
 case class GetRoomCommands(handler: ActorRef)
+case class BuyDrink()
 
 
 class User extends Actor with CommandRecipient {
@@ -54,6 +57,7 @@ class User extends Actor with CommandRecipient {
   private var lastCommand: String = ""
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
+  private val actionBuffer = context.actorOf(Props(new ActionBuffer), "actionBuffer")
 
   implicit def inputStreamWrapper(input: InputStream) = new BufferedReader(new InputStreamReader(input))
   implicit def outputStreamWrapper(output: OutputStream) = new PrintWriter(new OutputStreamWriter(output))
@@ -73,11 +77,16 @@ class User extends Actor with CommandRecipient {
       }), "clientConnectionDaemon") ! ClientConnection(port)
     }
     case WorldIntroduction(gaia) => world = gaia
-    
-    case Move(dir) => room ! Room.Depart(username, dir, bac)
+    case Move(dir) => actionBuffer ! PrepMove(dir)
+    case PerformMove(dir) => room ! Room.Depart(username, dir, bac)
     case Speak(msg) => room ! Room.Say(username, msg)
-    case Room.Look => room ! Room.Look
-    case Hit(target) => room ! Room.Hit(username, target)
+    case Room.Look => room ! Room.Look(username)
+    case Hit(target) => actionBuffer ! PrepHit(target)
+    case PerformHit(target) => room ! Room.Hit(username, target, bac)
+    case BuyDrink => {
+    	self ! UserMessage("You are handed a vodka and redbull, immediately slam it, and instantly absorb all the alcohol into your blood.")
+    	bac = bac + 0.3
+    }
     case GetHit(attacker, damage) => {
     	self ! UserMessage(attacker + " hits you for " + damage + " damage.")
     	if (hps - damage < 1) {
@@ -146,7 +155,10 @@ class User extends Actor with CommandRecipient {
       if (loginSuccessful) {
         usernameTaken = false
       } else {
-        self ! UserMessage("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
+      		if (username.contains(" ")) self ! UserMessage("Just your first name, dude.")
+      		else if (username == "") self ! UserMessage("What? Speak up man!")
+      		else if (!username.forall(_.isLetter)) self ! UserMessage("What kind of name is that?  You think this is some online game? Do you even alphabet, bro?")
+      		else self ! UserMessage("Sorry beef, I already know a " + username + ". You got a nickname or something I can call you?")
       }
     }
     println("User created for: " + username)
