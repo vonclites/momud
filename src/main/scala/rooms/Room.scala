@@ -8,11 +8,12 @@ import users.GetHit
 import server.UserLogoff
 import users.Origin._
 import users.UserDeath
+import users.Welcome
 
 object Room {
 	case class SetExits(exits: Map[String,(String,ActorRef)])
 	case class Arrive(name: String, player: Player)
-	case class Depart(name: String, dir: String)
+	case class Depart(name: String, dir: String, bac: Double)
 	case class Say(name: String, msg: String)
 	case class Look()
 	case class Hit(attacker: String, target: String)
@@ -34,12 +35,20 @@ class Room(val id: Int, val name: String, val desc: String) extends Actor{
 			}
 			users = users + ((name,player))
 		}
-		case Depart(name, dir) => {
+		case Depart(name, dir, bac) => {
 			if (exits.isDefinedAt(dir)){
-				val player = users(name)	
-				users = users - name
-				exits(dir)._2 ! Arrive(name, player)
-				users foreach { case (_, player) => player.ref ! UserMessage(name + " has departed " + getFullDirection(dir) + ".")}
+				val player = users(name)
+				(Random.nextInt(100) / bac) match{
+		  		case n if (n < 20 && bac > 1) => {
+		  			player.ref ! UserMessage("You trip trying to leave.")
+		  			(users - name) foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " trips and falls on his face.  He's drunk!")}
+		  		}
+		  		case _ => {
+		  			users = users - name
+						exits(dir)._2 ! Arrive(name, player)
+						users foreach { case (_, player) => player.ref ! UserMessage(name + " has departed " + getFullDirection(dir) + ".")}
+		  		}
+				}
 			} else sender ! UserMessage("You cannot go that direction.")
 		} 
 		case Say(name, msg) => (users - name) foreach { case (_, player) => player.ref ! UserMessage(name + " says, '" + msg + "'")}
