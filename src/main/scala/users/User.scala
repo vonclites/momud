@@ -85,7 +85,10 @@ class User extends Actor with CommandRecipient {
     case PerformHit(target) => room ! Room.Hit(username, target, bac)
     case BuyDrink => {
     	self ! UserMessage("You are handed a vodka and redbull, immediately slam it, and instantly absorb all the alcohol into your blood.")
-    	bac = bac + 0.3
+    	if (bac + 0.2 >= 3.0) {
+    		self ! UserMessage("You die of alcohol poisoning.")
+    		self ! Die
+    	} else bac = bac + 0.2
     }
     case GetHit(attacker, damage) => {
     	self ! UserMessage(attacker + " hits you for " + damage + " damage.")
