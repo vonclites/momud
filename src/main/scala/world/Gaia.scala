@@ -32,8 +32,6 @@ class Gaia extends Actor{
 			createRooms
 			setExits
 			def createRooms = {
-				val barHandler = context.actorOf(Props(classOf[BarCommandHandler]))
-				val regularRoomHandler = context.actorOf(Props(classOf[RegularRoomCommandHandler]))
 				rooms foreach { case (id, name, desc, bar) =>
 		  		val room: ActorRef = context.actorOf(Room.props(id, name, desc, bar))
 		  		val mapping: (Int,(String,ActorRef)) = (id,(name,room))

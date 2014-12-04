@@ -21,7 +21,7 @@ object Room {
 
 class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Actor{
 	import Room._
-	var commandHandler: ActorRef = if (bar == 0) context.actorOf(Props(classOf[RegularRoomCommandHandler])) else context.actorOf(Props(new BarCommandHandler))
+	var commandHandler: ActorRef = if (bar == 0) context.actorOf(Props(classOf[RegularRoomCommandHandler])) else context.actorOf(Props(new BarCommandHandler(self)))
 	var exits: Map[String,(String,ActorRef)] = Map()
 	var users: Map[String,Player] = Map()
 	def receive = {
@@ -68,6 +68,10 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 				}
 				case None => sender ! UserMessage("That person does not seem to be here.")
 			}
+		}
+		case GiveDrink(playerRef) => users.find( { case (name,player) => player.ref == playerRef } ) match{
+			case Some((name,player)) => player.ref ! BuyDrink
+			case None => ;
 		}
 		case UserDeath(name) => {
 			users = users - name
