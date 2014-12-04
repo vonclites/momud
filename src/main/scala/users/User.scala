@@ -9,6 +9,7 @@ import java.io.PrintWriter
 import java.net.Socket
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
+import scala.util.Random
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
@@ -36,6 +37,7 @@ case class Speak(msg: String)
 case class Hit(target: String)
 case class GetHit(attacker: String, damage: Int)
 case class Die()
+case class GetRoomCommands(handler: ActorRef)
 
 
 class User extends Actor with CommandRecipient {
@@ -48,6 +50,7 @@ class User extends Actor with CommandRecipient {
   private var world: ActorRef = null
   private var loggedIn = true
   private var hps = 100
+  private var bac = 1.0
   private var lastCommand: String = ""
   private val commandParser = context.actorOf(Props(new CommandParser), "commandParser")
   private val userCommandHandler = context.actorOf(Props(new UserCommandHandler), "userCommandHandler")
@@ -71,7 +74,7 @@ class User extends Actor with CommandRecipient {
     }
     case WorldIntroduction(gaia) => world = gaia
     
-    case Move(dir) => room ! Room.Depart(username, dir)
+    case Move(dir) => room ! Room.Depart(username, dir, bac)
     case Speak(msg) => room ! Room.Say(username, msg)
     case Room.Look => room ! Room.Look
     case Hit(target) => room ! Room.Hit(username, target)
@@ -91,6 +94,7 @@ class User extends Actor with CommandRecipient {
     	connection.close
     }
     case Welcome(desc:String) => room = sender; self ! UserMessage(desc)
+    case GetRoomCommands(handler) => handler ! GetCommandSet
     case UserMessage(message) => {
       userOutput.println(message)
       userOutput.flush
@@ -118,8 +122,6 @@ class User extends Actor with CommandRecipient {
         	command = if (command.trim == "!") lastCommand else command
           commandParser ! UnparsedCommand(command)
           lastCommand = command
-          userOutput.println(username + " => " + command)
-          userOutput.flush
           if (command.trim().take(4).equalsIgnoreCase("quit")) {
             loggedIn = false       
             userOutput.println("Logging out...")
@@ -164,6 +166,8 @@ class User extends Actor with CommandRecipient {
   }
   
   private def getUserInput: String = {
+  	userOutput.print(username + " => ")
+    userOutput.flush
     val buffer = userInput.readLine
     userOutput.println
     userOutput.flush

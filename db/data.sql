@@ -42,7 +42,7 @@ CREATE TABLE `exits` (
 
 LOCK TABLES `exits` WRITE;
 /*!40000 ALTER TABLE `exits` DISABLE KEYS */;
-INSERT INTO `exits` VALUES (1,2,'n'),(2,1,'s'),(2,3,'e'),(3,2,'w');
+INSERT INTO `exits` VALUES (1,2,'e'),(2,1,'w'),(2,3,'n'),(3,2,'s');
 /*!40000 ALTER TABLE `exits` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -57,6 +57,7 @@ CREATE TABLE `rooms` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(45) DEFAULT NULL,
   `description` longtext,
+  `bar` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -67,7 +68,7 @@ CREATE TABLE `rooms` (
 
 LOCK TABLES `rooms` WRITE;
 /*!40000 ALTER TABLE `rooms` DISABLE KEYS */;
-INSERT INTO `rooms` VALUES (1,'test1','test1desc'),(2,'test2','test2desc'),(3,'test3','test3desc');
+INSERT INTO `rooms` VALUES (1,'Gibbie\'s Pub','This moderately sized pub is filled with drunken patrons.  There are several tables, most of which occupied by half empty drinks and surrounded by yammering students.  An obnoxiously loud band plays in the back.  Many swarm the bar to jockey for position.  Hulking behind the bar stands Gibbie.  He is flanked by two scantily clad bartenders.',1),(2,'High Street, Outside Gibbie\'s','Outside Gibbie’s you can clearly hear the sound of the music emanating from inside, though the door is shut. People stand about in front of the bar, under the awning which reads “Gibbie’s Pub and Eatery Since 1987”. The accompanying picture of the parrot on the awning makes the place seem oddly welcoming.',0),(3,'High Street','The street is bustling with people walking about and chatting, all at varying levels of intoxication. There are long, entrance lines stretching down either side of the street easily marking the entrances to bars and clubs. Farther down the street is a break in the lines, Gibby’s Pub & Eatery.',0);
 /*!40000 ALTER TABLE `rooms` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -80,4 +81,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2014-11-24 21:36:50
+-- Dump completed on 2014-12-03 22:24:45
