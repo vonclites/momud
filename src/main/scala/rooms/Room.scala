@@ -70,7 +70,7 @@ class Room(val id: Int, val name: String, val desc: String, bar: Int) extends Ac
 			}
 		}
 		case GiveDrink(playerRef) => users.find( { case (name,player) => player.ref == playerRef } ) match{
-			case Some((name,player)) => player.ref ! BuyDrink
+			case Some((name,player)) => player.ref ! BuyDrink; (users - name) foreach { case (_, occupant) => occupant.ref ! UserMessage(name + " trips and falls on his face.  He's drunk!")}
 			case None => ;
 		}
 		case UserDeath(name) => {
