@@ -24,7 +24,7 @@ class Gaia extends Actor{
 	
 	def receive = {
 		case BuildWorld => buildWorld
-		case ReceiveUser(name, player) => world(1)._2  ! Room.Arrive(name, player)
+		case ReceiveUser(name, player) => world(2)._2  ! Room.Arrive(name, player)
 	}
 	
 	def buildWorld = {
